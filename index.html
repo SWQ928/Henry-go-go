@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Henry go!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, #7fd3ff 0%, #b8ecff 45%, #dff7ff 100%);
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #gameContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+  }
+  #startMask {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(127,211,255,0.92), rgba(184,236,255,0.96));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    padding: 20px;
+  }
+  #startMask h1 {
+    font-size: 38px;
+    color: #fff;
+    text-shadow: 0 4px 0 #2f8fcc, 0 6px 12px rgba(0,0,0,0.25);
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+  }
+  #startMask .tip {
+    color: #156598;
+    font-size: 14px;
+    margin-bottom: 22px;
+    background: rgba(255,255,255,0.55);
+    padding: 8px 14px;
+    border-radius: 14px;
+  }
+  .charGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 86%;
+    max-width: 420px;
+    margin-bottom: 24px;
+  }
+  .charItem {
+    background: rgba(255,255,255,0.85);
+    border: 3px solid #fff;
+    border-radius: 18px;
+    padding: 14px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(47,143,204,0.25);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .charItem:active { transform: scale(0.94); }
+  .charItem.selected {
+    border-color: #ffcf4a;
+    background: rgba(255,241,179,0.95);
+    box-shadow: 0 0 0 4px rgba(255,207,74,0.45);
+  }
+  .charItem img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.18));
+  }
+  .charItem span {
+    font-size: 14px;
+    color: #156598;
+    font-weight: bold;
+  }
+  #startBtn {
+    background: linear-gradient(180deg, #ffdb4d, #ffae00);
+    color: #7a4400;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 46px;
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    box-shadow: 0 8px 0 #c77700, 0 12px 20px rgba(255,174,0,0.45);
+    cursor: pointer;
+  }
+  #startBtn:active {
+    transform: translateY(4px);
+    box-shadow: 0 4px 0 #c77700, 0 6px 12px rgba(255,174,0,0.4);
+  }
+  #hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 20;
+  }
+  #coinBox, #bestBox {
+    background: rgba(255,255,255,0.82);
+    padding: 8px 14px;
+    border-radius: 14px;
+    font-size: 15px;
+    color: #156598;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(47,143,204,0.2);
+  }
+  #bestBox { color: #b56b00; background: rgba(255,241,179,0.9); }
+  #overMask {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+  }
+  #overMask.show { display: flex; }
+  .overPanel {
+    background: #fffbea;
+    border-radius: 24px;
+    padding: 28px 22px;
+    width: 82%;
+    max-width: 340px;
+    text-align: center;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.25);
+    border: 4px solid #ffcf4a;
+  }
+  .overPanel h2 {
+    color: #d25700;
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+  .overPanel p {
+    color: #555;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .overPanel .coinCount {
+    font-size: 42px;
+    color: #ff8a00;
+    font-weight: bold;
+    margin: 10px 0 8px;
+    text-shadow: 0 3px 0 #ffe2a8;
+  }
+  .newRecordTip{
+    color:#ff3b30;
+    font-weight:bold;
+    font-size:18px;
+    margin-bottom:14px;
+  }
+  #restartBtn {
+    background: linear-gradient(180deg, #6bd6ff, #2f9ce0);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 34px;
+    font-size: 17px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    box-shadow: 0 7px 0 #1b6fa8, 0 10px 18px rgba(47,156,224,0.4);
+    cursor: pointer;
+  }
+  #restartBtn:active {
+    transform: translateY(3px);
+    box-shadow: 0 4px 0 #1b6fa8, 0 6px 12px rgba(47,156,224,0.35);
+  }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="game"></canvas>
+  <div id="hud" style="display:none;">
+    <div id="coinBox">金币：0</div>
+    <div id="bestBox">最高金币：0</div>
+  </div>
+  <div id="startMask">
+    <h1>Henry go!</h1>
+    <div class="tip">点击屏幕跳跃 · 收集金币</div>
+    <div class="charGrid">
+      <div class="charItem selected" data-char="0">
+        <img src="char1.png" alt="樱桃小瑞" />
+        <span>樱桃小瑞</span>
+      </div>
+      <div class="charItem" data-char="1">
+        <img src="char2.png" alt="咪菇" />
+        <span>咪菇</span>
+      </div>
+      <div class="charItem" data-char="2">
+        <img src="char3.png" alt="呆蜹" />
+        <span>呆蜹</span>
+      </div>
+    </div>
+    <button id="startBtn">开始游戏</button>
+  </div>
+  <div id="overMask">
+    <div class="overPanel">
+      <h2>落水啦！</h2>
+      <p>本次收集金币</p>
+      <div class="coinCount" id="finalCoin">0</div>
+      <div class="newRecordTip" id="newRecord" style="display:none;">🎉 新纪录！</div>
+      <button id="restartBtn">再来一局</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const coinBox = document.getElementById('coinBox');
+  const bestBox = document.getElementById('bestBox');
+  const hud = document.getElementById('hud');
+  const startMask = document.getElementById('startMask');
+  const startBtn = document.getElementById('startBtn');
+  const overMask = document.getElementById('overMask');
+  const finalCoin = document.getElementById('finalCoin');
+  const newRecordTip = document.getElementById('newRecord');
+  const restartBtn = document.getElementById('restartBtn');
+  const charItems = document.querySelectorAll('.charItem');
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const BASE_SPEED = 5.5;
+  const MAX_SPEED = 6.5;
+  const JUMP_POWER = -14;
+  const GRAVITY = 0.65;
+  const PLAYER_SIZE = 54;
+  let selectedChar = 0;
+  let running = false;
+  let coinNum = 0;
+  let bestCoin = Number(localStorage.getItem('henryGoBestCoin') || 0);
+  let frame = 0;
+  let currentSpeed = BASE_SPEED;
+  let player, platforms, coins, particles, clouds, waterLevel;
+  let audioCtx = null;
+
+  const chars = [
+    { img: new Image(), src: 'char1.png' },
+    { img: new Image(), src: 'char2.png' },
+    { img: new Image(), src: 'char3.png' }
+  ];
+  chars.forEach(c => c.img.src = c.src);
+
+  function playCoinSound() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.15);
+  }
+
+  function playFallSound() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.35);
+  }
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  charItems.forEach(item => {
+    item.addEventListener('click', () => {
+      charItems.forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      selectedChar = Number(item.dataset.char);
+    });
+  });
+
+  function startGame() {
+    coinNum = 0;
+    frame = 0;
+    running = true;
+    currentSpeed = BASE_SPEED;
+    waterLevel = H * 0.82;
+    player = {
+      x: W * 0.22,
+      y: H * 0.4,
+      w: PLAYER_SIZE,
+      h: PLAYER_SIZE,
+      vy: 0,
+      onGround: false,
+      jumpUsed: false,
+      squash: 0
+    };
+    platforms = [];
+    coins = [];
+    particles = [];
+    clouds = [];
+    platforms.push({ x: -60, y: H * 0.72, w: W * 1.4, h: 180 });
+    let lastX = W * 0.8;
+    for (let i = 0; i < 10; i++) {
+      lastX = generateSegment(lastX);
+    }
+    for (let i = 0; i < 5; i++) {
+      clouds.push({
+        x: Math.random() * W,
+        y: 40 + Math.random() * 140,
+        r: 22 + Math.random() * 18,
+        s: 0.3 + Math.random() * 0.4
+      });
+    }
+    startMask.style.display = 'none';
+    overMask.classList.remove('show');
+    newRecordTip.style.display = 'none';
+    hud.style.display = 'flex';
+    bestBox.textContent = '最高金币：' + bestCoin;
+    coinBox.textContent = '金币：0';
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    loop();
+  }
+
+  function generateSegment(startX) {
+    const gap = 130 + Math.random() * 40;
+    const pw = 130 + Math.random() * 70;
+    const py = H * 0.72 + (Math.random() * 60 - 30);
+    const plat = { x: startX + gap, y: py, w: pw, h: 180 };
+    platforms.push(plat);
+    coins.push({
+      x: plat.x + pw / 2,
+      y: plat.y - 45,
+      r: 16,
+      collected: false,
+      phase: Math.random() * Math.PI * 2
+    });
+    return plat.x + pw;
+  }
+
+  function jump() {
+    if (!running) return;
+    if (player.onGround && !player.jumpUsed) {
+      player.vy = JUMP_POWER;
+      player.onGround = false;
+      player.jumpUsed = true;
+      player.squash = 1;
+    }
+  }
+
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); jump(); });
+  canvas.addEventListener('mousedown', e => { jump(); });
+  startBtn.onclick = startGame;
+  restartBtn.onclick = startGame;
+
+  function loop() {
+    if (!running) return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update() {
+    frame++;
+    player.vy += GRAVITY;
+    player.y += player.vy;
+    if (coinNum <= 25) {
+      currentSpeed = BASE_SPEED;
+    } else {
+      const extra = coinNum - 25;
+      const add = Math.floor(extra / 10) * 0.1;
+      currentSpeed = Math.min(BASE_SPEED + add, MAX_SPEED);
+    }
+    player.onGround = false;
+    for (const p of platforms) {
+      if (
+        player.x + player.w * 0.35 < p.x + p.w &&
+        player.x + player.w * 0.65 > p.x &&
+        player.y + player.h >= p.y &&
+        player.y + player.h <= p.y + 28 &&
+        player.vy >= 0
+      ) {
+        player.y = p.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        player.jumpUsed = false;
+      }
+    }
+    if (player.squash > 0) player.squash -= 0.08;
+    for (const p of platforms) p.x -= currentSpeed;
+    for (const c of coins) c.x -= currentSpeed;
+    for (const p of particles) {
+      p.x -= currentSpeed * 0.4 + p.vx;
+      p.vy += 0.2;
+      p.y += p.vy;
+      p.life--;
+    }
+    particles = particles.filter(p => p.life > 0);
+    for (const c of clouds) {
+      c.x -= c.s;
+      if (c.x < -60) {
+        c.x = W + 60;
+        c.y = 40 + Math.random() * 140;
+      }
+    }
+    const lastP = platforms[platforms.length - 1];
+    if (lastP && lastP.x + lastP.w < W + 400) {
+      generateSegment(lastP.x + lastP.w);
+    }
+    platforms = platforms.filter(p => p.x + p.w > -50);
+    coins = coins.filter(c => c.x > -40 && !c.collected);
+    for (const c of coins) {
+      c.phase += 0.18;
+      if (!c.collected) {
+        const dx = (player.x + player.w / 2) - c.x;
+        const dy = (player.y + player.h / 2) - c.y;
+        if (Math.hypot(dx, dy) < 34) {
+          c.collected = true;
+          coinNum += 1;
+          coinBox.textContent = '金币：' + coinNum;
+          playCoinSound();
+          for (let i = 0; i < 8; i++) {
+            particles.push({
+              x: c.x, y: c.y,
+              vx: (Math.random() - 0.5) * 4,
+              vy: -Math.random() * 3 - 1,
+              life: 30,
+              color: '#ffd24d'
+            });
+          }
+        }
+      }
+    }
+    if (player.y + player.h > waterLevel) {
+      gameOver();
+    }
+  }
+
+  function gameOver() {
+    running = false;
+    playFallSound();
+    finalCoin.textContent = coinNum;
+    if (coinNum > bestCoin) {
+      bestCoin = coinNum;
+      localStorage.setItem('henryGoBestCoin', bestCoin);
+      newRecordTip.style.display = 'block';
+    } else {
+      newRecordTip.style.display = 'none';
+    }
+    overMask.classList.add('show');
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#a7e4ff");
+    sky.addColorStop(0.45, "#cbf4ff");
+    sky.addColorStop(0.75, "#e7fbff");
+    sky.addColorStop(1, "#fffbe8");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    const sunGrad = ctx.createRadialGradient(W * 0.82, H * 0.18, 20, W * 0.82, H * 0.18, 180);
+    sunGrad.addColorStop(0, "rgba(255,244,180,0.9)");
+    sunGrad.addColorStop(0.45, "rgba(255,220,140,0.35)");
+    sunGrad.addColorStop(1, "rgba(255,220,140,0)");
+    ctx.fillStyle = sunGrad;
+    ctx.beginPath();
+    ctx.arc(W * 0.82, H * 0.18, 180, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (const c of clouds) {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.arc(c.x + c.r * 0.75, c.y + 5, c.r * 0.7, 0, Math.PI * 2);
+      ctx.arc(c.x - c.r * 0.65, c.y + 7, c.r * 0.6, 0, Math.PI * 2);
+      ctx.arc(c.x + c.r * 0.2, c.y - c.r * 0.4, c.r * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#9ed3a1";
+    for (let i = -1; i < 5; i++) {
+      const bx = (i * 260 - (frame * 0.2) % 260);
+      ctx.beginPath();
+      ctx.moveTo(bx, H * 0.72);
+      ctx.quadraticCurveTo(bx + 130, H * 0.44, bx + 260, H * 0.72);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = "#7fbf85";
+    for (let i = -1; i < 6; i++) {
+      const bx = (i * 220 - (frame * 0.45) % 220);
+      ctx.beginPath();
+      ctx.moveTo(bx, H * 0.76);
+      ctx.quadraticCurveTo(bx + 110, H * 0.54, bx + 220, H * 0.76);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = "#69b56c";
+    for (let i = -1; i < 8; i++) {
+      const bx = (i * 160 - (frame * currentSpeed * 0.7) % 160);
+      ctx.beginPath();
+      ctx.moveTo(bx, H * 0.8);
+      ctx.quadraticCurveTo(bx + 80, H * 0.62, bx + 160, H * 0.8);
+      ctx.closePath();
+      ctx.fill();
+    }
+    for (const p of platforms) {
+      ctx.fillStyle = "#8b5a2b";
+      ctx.fillRect(p.x, p.y + 18, p.w, p.h - 18);
+      ctx.fillStyle = "#6d4420";
+      for (let i = 0; i < p.w; i += 28) {
+        ctx.fillRect(p.x + i + 8, p.y + 36, 6, 6);
+        ctx.fillRect(p.x + i + 18, p.y + 64, 5, 5);
+        ctx.fillRect(p.x + i + 4, p.y + 90, 4, 4);
+      }
+      ctx.fillStyle = "#4aa34a";
+      ctx.fillRect(p.x, p.y + 12, p.w, 10);
+      ctx.fillStyle = "#6fbf5c";
+      ctx.fillRect(p.x, p.y, p.w, 14);
+      ctx.fillStyle = "#9be27b";
+      ctx.fillRect(p.x, p.y, p.w, 5);
+      ctx.fillStyle = "#7ad164";
+      for (let i = 0; i < p.w; i += 18) {
+        ctx.fillRect(p.x + i + 6, p.y - 2, 3, 4);
+      }
+    }
+    const water = ctx.createLinearGradient(0, waterLevel, 0, H);
+    water.addColorStop(0, "#3cb6e8");
+    water.addColorStop(0.5, "#2197db");
+    water.addColorStop(1, "#0b6aa8");
+    ctx.fillStyle = water;
+    ctx.fillRect(0, waterLevel, W, H - waterLevel);
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      for(let x=0;x<W;x+=12){
+        let yy = waterLevel + 6 + Math.sin((x+frame*4 + i*30)*0.04)*4;
+        if(x===0) ctx.moveTo(x,yy);
+        else ctx.lineTo(x,yy);
+      }
+      ctx.stroke();
+    }
+    for (const c of coins) {
+      if(c.collected) continue;
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      const flip = Math.sin(c.phase);
+      ctx.scale(flip*0.35 + 0.65,1);
+      ctx.fillStyle="#ffd24d";
+      ctx.beginPath();
+      ctx.arc(0,0,c.r,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle="#ffb300";
+      ctx.beginPath();
+      ctx.arc(0,0,c.r*0.72,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle="#7a4400";
+      ctx.font="bold 16px Arial";
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.fillText("$",0,1);
+      ctx.fillStyle="#fff";
+      ctx.beginPath();
+      ctx.arc(-c.r*0.35,-c.r*0.35,c.r*0.18,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+    for(const pt of particles){
+      ctx.fillStyle=pt.color;
+      ctx.beginPath();
+      ctx.arc(pt.x,pt.y,4,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.save();
+    ctx.translate(player.x+player.w/2, player.y+player.h/2);
+    ctx.scale(1, 1 - player.squash*0.25);
+    const charImg = chars[selectedChar].img;
+    if(charImg.complete){
+      ctx.drawImage(charImg,-player.w/2,-player.h/2,player.w,player.h);
+    }else{
+      ctx.fillStyle="#ff8866";
+      ctx.beginPath();
+      ctx.arc(0,0,player.w/2.2,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+})();
+</script>
+</body>
+</html>
